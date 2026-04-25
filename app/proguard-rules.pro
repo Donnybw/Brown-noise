@@ -1,0 +1,3 @@
+-keep class com.brownnoise.app.CastOptionsProvider { *; }
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
