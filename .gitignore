@@ -1,0 +1,8 @@
+# Local Netlify CLI state
+.netlify/
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
