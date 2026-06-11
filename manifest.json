@@ -1,0 +1,15 @@
+{
+  "name": "Property Line",
+  "short_name": "PropertyLine",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1e1b4b",
+  "theme_color": "#ef4444",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

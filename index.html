@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#ef4444">
+    <title>Property Line Measurement</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Unregister any existing service workers to fix caching issues
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(reg => reg.unregister());
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Property<span class="accent">Line</span></h1>
+            <p class="subtitle">AI-powered property boundary measurement from satellite imagery</p>
+        </header>
+
+        <!-- API Key Config (Hidden by default, visible only on localhost) -->
+        <section id="dev-api-keys" style="display: none; margin-bottom: 2rem;">
+            <details id="dev-api-details">
+                <summary>🔧 Local Dev API Keys</summary>
+                <div class="api-form">
+                    <div class="input-group">
+                        <label for="dev-google-key">Google Maps API Key</label>
+                        <input type="password" id="dev-google-key" placeholder="Enter key for localhost testing">
+                    </div>
+                    <button id="dev-save-keys" class="btn btn-secondary">Save Local Keys</button>
+                    <p style="font-size: 0.8rem; color: #aaa; margin-top: 0.5rem;">
+                        These keys are stored in your local browser only. They are NOT uploaded or used in production.
+                    </p>
+                </div>
+            </details>
+        </section>
+
+        <section class="search-section">
+            <div class="input-group">
+                <label for="address">Property Address</label>
+                <div class="search-row">
+                    <input type="text" id="address" placeholder="Enter address (e.g., 123 Main St, City, State)">
+                    <div class="zoom-select-wrapper">
+                        <span class="zoom-label">Property Size</span>
+                        <select id="satellite-zoom" class="zoom-select" title="Select property size">
+                            <option value="20">Small</option>
+                            <option value="19" selected>Medium</option>
+                            <option value="18">Large</option>
+                            <option value="17">XL</option>
+                        </select>
+                    </div>
+                    <button id="analyze-btn" class="btn btn-primary">Analyze</button>
+                    <button id="quick-load-btn" class="btn btn-secondary">📂 Load</button>
+                    <!-- Quick Load Popup -->
+                    <div id="quick-load-popup" class="quick-load-popup">
+                        <div class="quick-load-header">
+                            <span>📂 Load Project</span>
+                            <button id="quick-load-close" class="options-popup-close">✕</button>
+                        </div>
+                        <div id="quick-load-saved-list" class="quick-load-list"></div>
+                        <div class="quick-load-divider">or</div>
+                        <label class="btn btn-secondary quick-load-import-btn">
+                            📄 Import JSON File
+                            <input type="file" id="quick-import-input" accept=".json" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="results-section" id="results" style="display: none;">
+            <div class="image-container">
+                <div class="map-controls">
+                    <button id="btn-reset" class="control-btn" title="Reset View">↺</button>
+                    <button id="btn-zoom-out" class="control-btn" title="Zoom Out">−</button>
+                    <button id="btn-zoom-in" class="control-btn" title="Zoom In">＋</button>
+                    <button id="btn-pan-mode" class="control-btn" title="Pan Mode">✋</button>
+                    <button id="btn-rotate-left" class="control-btn" title="Rotate Left">↶</button>
+                    <button id="btn-rotate-right" class="control-btn" title="Rotate Right">↷</button>
+                </div>
+                <div id="map-wrapper" style="transform-origin: top left; transition: transform 0.1s ease-out;">
+                    <img id="satellite-img" src="" alt="Satellite view" crossOrigin="anonymous">
+                    <canvas id="overlay-canvas"></canvas>
+                </div>
+                <div class="loading-overlay" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p id="loading-text">Fetching satellite image...</p>
+                </div>
+            </div>
+
+            <div class="measurements-panel">
+                <details class="workflow-help" id="workflow-help">
+                    <summary>Quick Workflow — Best Results</summary>
+                    <ol class="workflow-steps">
+                        <li><strong>Outline the property</strong> — Drag corners/edges until the blue boundary matches
+                            the fence lines.</li>
+                        <li><strong>Square it</strong> — Click <code>RECT</code> to square the property boundary (works
+                            best with 4 corners).</li>
+                        <li><strong>Select the house</strong> — Click <strong>Select House</strong>, then click-and-drag
+                            over the house. Use the rotate handle to align.</li>
+                        <li><strong>Add the shed</strong> — Enter shed dimensions, click <strong>Add Shed</strong>, then
+                            drag it into position.</li>
+                        <li><strong>Square the shed</strong> — Click <code>SHED</code> on the map to align with the
+                            nearest fence line.</li>
+                        <li><strong>Mark shadows</strong> <em>(optional)</em> — Click <code>SHDW</code>, then click
+                            shadow areas to label them for AI removal.</li>
+                        <li><strong>Generate</strong> — Click <strong>Generate Site Plan with AI</strong>, then paste
+                            the image into Gemini.</li>
+                        <li><strong>Add clearances</strong> — If the plan looks good, click <strong>Copy clearance
+                                prompt</strong> and paste into Gemini.</li>
+                        <li><strong>Refine if needed</strong> — <span class="refresh-icon">↻</span> Use Gemini's
+                            <em>Regenerate</em> until the plan looks right.
+                        </li>
+                    </ol>
+                </details>
+                <h2>📐 Measurements</h2>
+                <div class="measurement-grid" id="measurement-grid">
+                    <!-- Measurements will be inserted here -->
+                </div>
+                <div class="area-display" id="area-display"></div>
+
+                <div id="shed-clearances" class="clearances-panel" style="display: none;">
+                    <h3>Shed Clearances</h3>
+                    <div class="clearance-grid" id="shed-clearance-grid"></div>
+                    <div class="clearance-warning" id="shed-clearance-warning" style="display: none;"></div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Fixed Bottom Action Bar -->
+        <div id="bottom-action-bar" class="bottom-action-bar" style="display: none;">
+            <!-- Options Popup (appears above the bar) -->
+            <div id="options-popup" class="options-popup">
+                <div class="options-popup-header">
+                    <span>⚙️ Export Options</span>
+                    <button id="options-popup-close" class="options-popup-close">✕</button>
+                </div>
+                <div class="options-popup-grid">
+                    <label class="options-popup-row">
+                        <span>🎨 Style</span>
+                        <select id="opt-style">
+                            <option value="technical">Technical CAD</option>
+                            <option value="blueprint">Blueprint</option>
+                            <option value="architectural">Architectural</option>
+                            <option value="sketch">Hand Sketch</option>
+                        </select>
+                    </label>
+                    <label class="options-popup-row">
+                        <span>🌈 Color</span>
+                        <select id="opt-color">
+                            <option value="bw">Black &amp; White</option>
+                            <option value="color">Full Color</option>
+                            <option value="muted">Muted</option>
+                        </select>
+                    </label>
+                    <label class="options-popup-row">
+                        <span>📐 Aspect</span>
+                        <select id="opt-aspect">
+                            <option value="tall">Tall (Portrait)</option>
+                            <option value="wide">Wide (Landscape)</option>
+                            <option value="square">Square</option>
+                        </select>
+                    </label>
+                    <div class="options-popup-toggles">
+                        <label class="options-toggle"><input type="checkbox" id="opt-shading"
+                                checked><span>Textures</span></label>
+                        <label class="options-toggle"><input type="checkbox" id="opt-trees"
+                                checked><span>Trees</span></label>
+                        <label class="options-toggle"><input type="checkbox" id="opt-labels"><span>Labels</span></label>
+                        <label class="options-toggle"><input type="checkbox" id="opt-north" checked><span>North
+                                ↑</span></label>
+                        <label class="options-toggle"><input type="checkbox"
+                                id="opt-setback"><span>Setback</span></label>
+                    </div>
+                    <label class="options-popup-row">
+                        <span>📝 Notes</span>
+                        <input type="text" id="opt-notes" placeholder="Custom instructions...">
+                    </label>
+                    <label class="options-popup-row">
+                        <span>Outside buffer (ft)</span>
+                        <input type="number" id="opt-outside-ft" min="0" step="1" value="0" placeholder="0">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Save/Load Popup -->
+            <div id="save-load-popup" class="options-popup">
+                <div class="options-popup-header">
+                    <span>💾 Save / Load Project</span>
+                    <button id="save-load-popup-close" class="options-popup-close">✕</button>
+                </div>
+                <div class="options-popup-grid">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="text" id="project-name-input" placeholder="Project name..." style="flex: 1;">
+                        <button id="save-project-btn" class="btn btn-primary"
+                            style="padding: 0.4rem 0.8rem;">Save</button>
+                    </div>
+                    <div id="saved-projects-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 0.5rem;">
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+                        <button id="export-project-btn" class="btn btn-secondary"
+                            style="flex: 1; padding: 0.4rem;">Export JSON</button>
+                        <label class="btn btn-secondary"
+                            style="flex: 1; padding: 0.4rem; text-align: center; cursor: pointer;">
+                            Import JSON
+                            <input type="file" id="import-project-input" accept=".json" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-bar-buttons">
+                <button id="undo-btn" class="action-bar-btn action-bar-secondary" title="Undo (Ctrl+Z)">
+                    ↩️
+                </button>
+                <button id="redo-btn" class="action-bar-btn action-bar-secondary" title="Redo (Ctrl+Y)">
+                    ↪️
+                </button>
+                <button id="save-load-btn" class="action-bar-btn action-bar-secondary" title="Save/Load Project">
+                    💾
+                </button>
+                <button id="options-toggle-btn" class="action-bar-btn action-bar-secondary" title="Export Options">
+                    ⚙️ Options
+                </button>
+                <button id="export-btn" class="action-bar-btn action-bar-primary" title="Generate Site Plan">
+                    🎨 Generate
+                </button>
+            </div>
+        </div>
+
+        <section class="error-section" id="error" style="display: none;">
+            <div class="error-box">
+                <p id="error-message"></p>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js?v=16"></script>
+</body>
+
+</html>
