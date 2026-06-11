@@ -1,0 +1,5 @@
+# Netlify CLI local state
+.netlify/
+
+# Dependencies
+node_modules/
