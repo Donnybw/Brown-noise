@@ -79,12 +79,37 @@
             </div>
         </section>
 
+        <!-- First-run empty state (hidden once a property is analyzed) -->
+        <section class="empty-state" id="empty-state">
+            <div class="empty-state-icon">🛰️</div>
+            <h2>Measure any property in seconds</h2>
+            <p>Enter an address above and hit <strong>Analyze</strong> to pull up a satellite view with a draggable
+                boundary overlay.</p>
+            <div class="empty-state-steps">
+                <div class="empty-step">
+                    <span class="empty-step-num">1</span>
+                    <span>Search your address &amp; analyze</span>
+                </div>
+                <div class="empty-step">
+                    <span class="empty-step-num">2</span>
+                    <span>Drag the boundary to match your lot</span>
+                </div>
+                <div class="empty-step">
+                    <span class="empty-step-num">3</span>
+                    <span>Add structures &amp; generate a site plan</span>
+                </div>
+            </div>
+            <p class="empty-state-hint">💡 Tip: scroll to zoom, drag to pan, <kbd>F</kbd> to fit, <kbd>Ctrl+Z</kbd> to
+                undo.</p>
+        </section>
+
         <section class="results-section" id="results" style="display: none;">
             <div class="image-container">
                 <div class="map-controls">
-                    <button id="btn-reset" class="control-btn" title="Reset View">↺</button>
-                    <button id="btn-zoom-out" class="control-btn" title="Zoom Out">−</button>
-                    <button id="btn-zoom-in" class="control-btn" title="Zoom In">＋</button>
+                    <button id="btn-reset" class="control-btn" title="Reset View (0)">↺</button>
+                    <button id="btn-fit" class="control-btn" title="Fit Boundary (F)">⛶</button>
+                    <button id="btn-zoom-out" class="control-btn" title="Zoom Out (−)">−</button>
+                    <button id="btn-zoom-in" class="control-btn" title="Zoom In (+)">＋</button>
                     <button id="btn-pan-mode" class="control-btn" title="Pan Mode">✋</button>
                     <button id="btn-rotate-left" class="control-btn" title="Rotate Left">↶</button>
                     <button id="btn-rotate-right" class="control-btn" title="Rotate Right">↷</button>
@@ -247,7 +272,7 @@
         </section>
     </div>
 
-    <script src="app.js?v=16"></script>
+    <script type="module" src="js/main.js?v=17"></script>
 </body>
 
 </html>
