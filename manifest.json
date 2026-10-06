@@ -1,10 +1,11 @@
 {
-  "name": "Property Line",
+  "name": "PropertyLine",
   "short_name": "PropertyLine",
+  "description": "Measure property boundaries from satellite imagery and generate AI site plans.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1e1b4b",
-  "theme_color": "#ef4444",
+  "background_color": "#0b1118",
+  "theme_color": "#0ea5e9",
   "icons": [
     {
       "src": "icon.png",

@@ -5,14 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#ef4444">
-    <title>Property Line Measurement</title>
+    <meta name="theme-color" content="#0b1118">
+    <title>PropertyLine — Property Boundary Measurement</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
+        // Apply saved theme before first paint to avoid a flash
+        try {
+            const t = localStorage.getItem('plTheme');
+            if (t === 'light') document.documentElement.dataset.theme = 'light';
+        } catch (e) { }
         // Unregister any existing service workers to fix caching issues
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -23,14 +28,77 @@
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <h1>Property<span class="accent">Line</span></h1>
-            <p class="subtitle">AI-powered property boundary measurement from satellite imagery</p>
-        </header>
+    <a class="skip-link" href="#address">Skip to search</a>
 
+    <header class="app-header">
+        <div class="app-header-inner">
+            <a class="brand" href="./">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9.5L12 3l9 6.5" />
+                        <path d="M5 11v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8" />
+                        <path d="M9 20v-6h6v6" />
+                    </svg>
+                </span>
+                <span class="brand-name">Property<span class="accent">Line</span></span>
+            </a>
+            <span class="brand-tagline">Satellite boundary measurement</span>
+            <div class="header-actions">
+                <button id="quick-load-btn" class="header-btn" title="Open a saved project">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    </svg>
+                    <span>Projects</span>
+                </button>
+                <button id="shortcuts-btn" class="icon-btn" title="Help &amp; keyboard shortcuts"
+                    aria-label="Help and keyboard shortcuts">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M9.5 9a2.5 2.5 0 0 1 4.86.83c0 1.67-2.36 2.17-2.36 3.42" />
+                        <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+                    </svg>
+                </button>
+                <button id="theme-toggle" class="icon-btn" title="Switch theme" aria-label="Switch color theme">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4" />
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                    </svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Load Popup (position is set by app.js relative to the Projects button) -->
+        <div id="quick-load-popup" class="quick-load-popup">
+            <div class="quick-load-header">
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    </svg>
+                    Load Project
+                </span>
+                <button id="quick-load-close" class="options-popup-close" aria-label="Close">✕</button>
+            </div>
+            <div id="quick-load-saved-list" class="quick-load-list"></div>
+            <div class="quick-load-divider">or</div>
+            <label class="quick-load-import-btn">
+                Import JSON file
+                <input type="file" id="quick-import-input" accept=".json" style="display: none;">
+            </label>
+        </div>
+    </header>
+
+    <main class="container">
         <!-- API Key Config (Hidden by default, visible only on localhost) -->
-        <section id="dev-api-keys" style="display: none; margin-bottom: 2rem;">
+        <section id="dev-api-keys" style="display: none; margin-bottom: 1.5rem;">
             <details id="dev-api-details">
                 <summary>🔧 Local Dev API Keys</summary>
                 <div class="api-form">
@@ -39,20 +107,28 @@
                         <input type="password" id="dev-google-key" placeholder="Enter key for localhost testing">
                     </div>
                     <button id="dev-save-keys" class="btn btn-secondary">Save Local Keys</button>
-                    <p style="font-size: 0.8rem; color: #aaa; margin-top: 0.5rem;">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
                         These keys are stored in your local browser only. They are NOT uploaded or used in production.
                     </p>
                 </div>
             </details>
         </section>
 
-        <section class="search-section">
+        <section class="search-section" aria-label="Property search">
             <div class="input-group">
-                <label for="address">Property Address</label>
+                <label for="address">Property address</label>
                 <div class="search-row">
-                    <input type="text" id="address" placeholder="Enter address (e.g., 123 Main St, City, State)">
+                    <div class="address-field">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <input type="text" id="address" autocomplete="off"
+                            placeholder="Enter an address (e.g., 123 Main St, City, State)">
+                    </div>
                     <div class="zoom-select-wrapper">
-                        <span class="zoom-label">Property Size</span>
+                        <span class="zoom-label">Lot size</span>
                         <select id="satellite-zoom" class="zoom-select" title="Select property size">
                             <option value="20">Small</option>
                             <option value="19" selected>Medium</option>
@@ -60,194 +136,358 @@
                             <option value="17">XL</option>
                         </select>
                     </div>
-                    <button id="analyze-btn" class="btn btn-primary">Analyze</button>
-                    <button id="quick-load-btn" class="btn btn-secondary">📂 Load</button>
-                    <!-- Quick Load Popup -->
-                    <div id="quick-load-popup" class="quick-load-popup">
-                        <div class="quick-load-header">
-                            <span>📂 Load Project</span>
-                            <button id="quick-load-close" class="options-popup-close">✕</button>
-                        </div>
-                        <div id="quick-load-saved-list" class="quick-load-list"></div>
-                        <div class="quick-load-divider">or</div>
-                        <label class="btn btn-secondary quick-load-import-btn">
-                            📄 Import JSON File
-                            <input type="file" id="quick-import-input" accept=".json" style="display: none;">
-                        </label>
-                    </div>
+                    <button id="analyze-btn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="m21 21-4.35-4.35" />
+                        </svg>
+                        Analyze
+                    </button>
+                </div>
+                <div id="recent-addresses" class="recent-addresses" aria-label="Recent addresses"></div>
+            </div>
+        </section>
+
+        <!-- Welcome / onboarding (hidden automatically once a property loads) -->
+        <section id="welcome" class="welcome-section" aria-label="How it works">
+            <div class="welcome-hero">
+                <h2>Measure any property,<br>straight from <span class="accent">satellite imagery</span></h2>
+                <p>Enter an address to pull a high-resolution satellite view, trace the boundary, place structures,
+                    and generate a professional site plan with AI.</p>
+            </div>
+            <div class="welcome-steps">
+                <div class="welcome-step">
+                    <span class="welcome-step-num">01</span>
+                    <span class="welcome-step-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 10c0 6-8 11-8 11s-8-5-8-11a8 8 0 0 1 16 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                    </span>
+                    <h3>Find the property</h3>
+                    <p>Search any address and we'll fetch a crisp satellite view, sized to your lot.</p>
+                </div>
+                <div class="welcome-step">
+                    <span class="welcome-step-num">02</span>
+                    <span class="welcome-step-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16v16H4z" />
+                            <circle cx="4" cy="4" r="1.5" fill="currentColor" />
+                            <circle cx="20" cy="4" r="1.5" fill="currentColor" />
+                            <circle cx="4" cy="20" r="1.5" fill="currentColor" />
+                            <circle cx="20" cy="20" r="1.5" fill="currentColor" />
+                        </svg>
+                    </span>
+                    <h3>Trace the boundary</h3>
+                    <p>Drag the corners until the outline matches your fence lines — measurements update live.</p>
+                </div>
+                <div class="welcome-step">
+                    <span class="welcome-step-num">03</span>
+                    <span class="welcome-step-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9.5L12 3l9 6.5" />
+                            <path d="M5 11v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8" />
+                        </svg>
+                    </span>
+                    <h3>Place structures</h3>
+                    <p>Add your house and shed, snap them square to fences, and check setback clearances.</p>
+                </div>
+                <div class="welcome-step">
+                    <span class="welcome-step-num">04</span>
+                    <span class="welcome-step-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+                            <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" />
+                        </svg>
+                    </span>
+                    <h3>Generate a site plan</h3>
+                    <p>Export a labeled, to-scale site plan image with an AI-ready prompt in one click.</p>
                 </div>
             </div>
         </section>
 
         <section class="results-section" id="results" style="display: none;">
-            <div class="image-container">
-                <div class="map-controls">
-                    <button id="btn-reset" class="control-btn" title="Reset View">↺</button>
-                    <button id="btn-zoom-out" class="control-btn" title="Zoom Out">−</button>
-                    <button id="btn-zoom-in" class="control-btn" title="Zoom In">＋</button>
-                    <button id="btn-pan-mode" class="control-btn" title="Pan Mode">✋</button>
-                    <button id="btn-rotate-left" class="control-btn" title="Rotate Left">↶</button>
-                    <button id="btn-rotate-right" class="control-btn" title="Rotate Right">↷</button>
-                </div>
-                <div id="map-wrapper" style="transform-origin: top left; transition: transform 0.1s ease-out;">
-                    <img id="satellite-img" src="" alt="Satellite view" crossOrigin="anonymous">
-                    <canvas id="overlay-canvas"></canvas>
-                </div>
-                <div class="loading-overlay" id="loading" style="display: none;">
-                    <div class="spinner"></div>
-                    <p id="loading-text">Fetching satellite image...</p>
-                </div>
-            </div>
-
-            <div class="measurements-panel">
-                <details class="workflow-help" id="workflow-help">
-                    <summary>Quick Workflow — Best Results</summary>
-                    <ol class="workflow-steps">
-                        <li><strong>Outline the property</strong> — Drag corners/edges until the blue boundary matches
-                            the fence lines.</li>
-                        <li><strong>Square it</strong> — Click <code>RECT</code> to square the property boundary (works
-                            best with 4 corners).</li>
-                        <li><strong>Select the house</strong> — Click <strong>Select House</strong>, then click-and-drag
-                            over the house. Use the rotate handle to align.</li>
-                        <li><strong>Add the shed</strong> — Enter shed dimensions, click <strong>Add Shed</strong>, then
-                            drag it into position.</li>
-                        <li><strong>Square the shed</strong> — Click <code>SHED</code> on the map to align with the
-                            nearest fence line.</li>
-                        <li><strong>Mark shadows</strong> <em>(optional)</em> — Click <code>SHDW</code>, then click
-                            shadow areas to label them for AI removal.</li>
-                        <li><strong>Generate</strong> — Click <strong>Generate Site Plan with AI</strong>, then paste
-                            the image into Gemini.</li>
-                        <li><strong>Add clearances</strong> — If the plan looks good, click <strong>Copy clearance
-                                prompt</strong> and paste into Gemini.</li>
-                        <li><strong>Refine if needed</strong> — <span class="refresh-icon">↻</span> Use Gemini's
-                            <em>Regenerate</em> until the plan looks right.
-                        </li>
-                    </ol>
-                </details>
-                <h2>📐 Measurements</h2>
-                <div class="measurement-grid" id="measurement-grid">
-                    <!-- Measurements will be inserted here -->
-                </div>
-                <div class="area-display" id="area-display"></div>
-
-                <div id="shed-clearances" class="clearances-panel" style="display: none;">
-                    <h3>Shed Clearances</h3>
-                    <div class="clearance-grid" id="shed-clearance-grid"></div>
-                    <div class="clearance-warning" id="shed-clearance-warning" style="display: none;"></div>
+            <div class="workspace">
+                <div class="map-pane">
+                    <div class="image-container">
+                        <div class="map-controls">
+                            <button id="btn-reset" class="control-btn" title="Reset view">↺</button>
+                            <button id="btn-zoom-out" class="control-btn" title="Zoom out">−</button>
+                            <button id="btn-zoom-in" class="control-btn" title="Zoom in">＋</button>
+                            <button id="btn-pan-mode" class="control-btn" title="Pan mode">✋</button>
+                            <button id="btn-rotate-left" class="control-btn" title="Rotate left">↶</button>
+                            <button id="btn-rotate-right" class="control-btn" title="Rotate right">↷</button>
+                        </div>
+                        <div id="map-wrapper" style="transform-origin: top left; transition: transform 0.1s ease-out;">
+                            <img id="satellite-img" src="" alt="Satellite view" crossOrigin="anonymous">
+                            <canvas id="overlay-canvas"></canvas>
+                        </div>
+                        <div class="loading-overlay" id="loading" style="display: none;">
+                            <div class="spinner"></div>
+                            <p id="loading-text">Fetching satellite image...</p>
+                        </div>
+                    </div>
+                    <p class="map-hint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 8v4M12 16h.01" />
+                        </svg>
+                        Drag corners to trace the boundary · drag edges to move sides · pinch or use the toolbar to
+                        zoom and rotate
+                    </p>
                 </div>
 
+                <aside class="measurements-panel">
+                    <details class="workflow-help" id="workflow-help">
+                        <summary>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+                            </svg>
+                            Quick workflow — best results
+                        </summary>
+                        <ol class="workflow-steps">
+                            <li><strong>Outline the property</strong> — Drag corners/edges until the boundary matches
+                                the fence lines.</li>
+                            <li><strong>Square it</strong> — Click <code>RECT</code> to square the property boundary
+                                (works best with 4 corners).</li>
+                            <li><strong>Select the house</strong> — Click <strong>Select House</strong>, then
+                                click-and-drag over the house. Use the rotate handle to align.</li>
+                            <li><strong>Add the shed</strong> — Enter shed dimensions, click <strong>Add Shed</strong>,
+                                then drag it into position.</li>
+                            <li><strong>Square the shed</strong> — Click <code>SHED</code> on the map to align with the
+                                nearest fence line.</li>
+                            <li><strong>Mark shadows</strong> <em>(optional)</em> — Click <code>SHDW</code>, then click
+                                shadow areas to label them for AI removal.</li>
+                            <li><strong>Generate</strong> — Click <strong>Generate</strong>, then paste the image into
+                                Gemini.</li>
+                            <li><strong>Add clearances</strong> — If the plan looks good, click <strong>Copy clearance
+                                    prompt</strong> and paste into Gemini.</li>
+                            <li><strong>Refine if needed</strong> — <span class="refresh-icon">↻</span> Use Gemini's
+                                <em>Regenerate</em> until the plan looks right.
+                            </li>
+                        </ol>
+                    </details>
+
+                    <h2>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2 15l13-13 7 7-13 13H2z" />
+                            <path d="M7.5 9.5l2 2M10.5 6.5l2 2M13.5 3.5l2 2" />
+                        </svg>
+                        Measurements
+                    </h2>
+                    <div class="measurement-grid" id="measurement-grid">
+                        <!-- Measurements will be inserted here -->
+                    </div>
+                    <div class="area-display" id="area-display"></div>
+
+                    <div id="shed-clearances" class="clearances-panel" style="display: none;">
+                        <h3>Shed Clearances</h3>
+                        <div class="clearance-grid" id="shed-clearance-grid"></div>
+                        <div class="clearance-warning" id="shed-clearance-warning" style="display: none;"></div>
+                    </div>
+                </aside>
             </div>
         </section>
-
-        <!-- Fixed Bottom Action Bar -->
-        <div id="bottom-action-bar" class="bottom-action-bar" style="display: none;">
-            <!-- Options Popup (appears above the bar) -->
-            <div id="options-popup" class="options-popup">
-                <div class="options-popup-header">
-                    <span>⚙️ Export Options</span>
-                    <button id="options-popup-close" class="options-popup-close">✕</button>
-                </div>
-                <div class="options-popup-grid">
-                    <label class="options-popup-row">
-                        <span>🎨 Style</span>
-                        <select id="opt-style">
-                            <option value="technical">Technical CAD</option>
-                            <option value="blueprint">Blueprint</option>
-                            <option value="architectural">Architectural</option>
-                            <option value="sketch">Hand Sketch</option>
-                        </select>
-                    </label>
-                    <label class="options-popup-row">
-                        <span>🌈 Color</span>
-                        <select id="opt-color">
-                            <option value="bw">Black &amp; White</option>
-                            <option value="color">Full Color</option>
-                            <option value="muted">Muted</option>
-                        </select>
-                    </label>
-                    <label class="options-popup-row">
-                        <span>📐 Aspect</span>
-                        <select id="opt-aspect">
-                            <option value="tall">Tall (Portrait)</option>
-                            <option value="wide">Wide (Landscape)</option>
-                            <option value="square">Square</option>
-                        </select>
-                    </label>
-                    <div class="options-popup-toggles">
-                        <label class="options-toggle"><input type="checkbox" id="opt-shading"
-                                checked><span>Textures</span></label>
-                        <label class="options-toggle"><input type="checkbox" id="opt-trees"
-                                checked><span>Trees</span></label>
-                        <label class="options-toggle"><input type="checkbox" id="opt-labels"><span>Labels</span></label>
-                        <label class="options-toggle"><input type="checkbox" id="opt-north" checked><span>North
-                                ↑</span></label>
-                        <label class="options-toggle"><input type="checkbox"
-                                id="opt-setback"><span>Setback</span></label>
-                    </div>
-                    <label class="options-popup-row">
-                        <span>📝 Notes</span>
-                        <input type="text" id="opt-notes" placeholder="Custom instructions...">
-                    </label>
-                    <label class="options-popup-row">
-                        <span>Outside buffer (ft)</span>
-                        <input type="number" id="opt-outside-ft" min="0" step="1" value="0" placeholder="0">
-                    </label>
-                </div>
-            </div>
-
-            <!-- Save/Load Popup -->
-            <div id="save-load-popup" class="options-popup">
-                <div class="options-popup-header">
-                    <span>💾 Save / Load Project</span>
-                    <button id="save-load-popup-close" class="options-popup-close">✕</button>
-                </div>
-                <div class="options-popup-grid">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <input type="text" id="project-name-input" placeholder="Project name..." style="flex: 1;">
-                        <button id="save-project-btn" class="btn btn-primary"
-                            style="padding: 0.4rem 0.8rem;">Save</button>
-                    </div>
-                    <div id="saved-projects-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 0.5rem;">
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
-                        <button id="export-project-btn" class="btn btn-secondary"
-                            style="flex: 1; padding: 0.4rem;">Export JSON</button>
-                        <label class="btn btn-secondary"
-                            style="flex: 1; padding: 0.4rem; text-align: center; cursor: pointer;">
-                            Import JSON
-                            <input type="file" id="import-project-input" accept=".json" style="display: none;">
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="action-bar-buttons">
-                <button id="undo-btn" class="action-bar-btn action-bar-secondary" title="Undo (Ctrl+Z)">
-                    ↩️
-                </button>
-                <button id="redo-btn" class="action-bar-btn action-bar-secondary" title="Redo (Ctrl+Y)">
-                    ↪️
-                </button>
-                <button id="save-load-btn" class="action-bar-btn action-bar-secondary" title="Save/Load Project">
-                    💾
-                </button>
-                <button id="options-toggle-btn" class="action-bar-btn action-bar-secondary" title="Export Options">
-                    ⚙️ Options
-                </button>
-                <button id="export-btn" class="action-bar-btn action-bar-primary" title="Generate Site Plan">
-                    🎨 Generate
-                </button>
-            </div>
-        </div>
 
         <section class="error-section" id="error" style="display: none;">
             <div class="error-box">
                 <p id="error-message"></p>
             </div>
         </section>
+    </main>
+
+    <!-- Floating Bottom Action Bar -->
+    <div id="bottom-action-bar" class="bottom-action-bar" style="display: none;">
+        <!-- Options Popup (appears above the bar) -->
+        <div id="options-popup" class="options-popup">
+            <div class="options-popup-header">
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3" />
+                        <path d="M2 14h4M10 8h4M18 16h4" />
+                    </svg>
+                    Export Options
+                </span>
+                <button id="options-popup-close" class="options-popup-close" aria-label="Close">✕</button>
+            </div>
+            <div class="options-popup-grid">
+                <label class="options-popup-row">
+                    <span>Style</span>
+                    <select id="opt-style">
+                        <option value="technical">Technical CAD</option>
+                        <option value="blueprint">Blueprint</option>
+                        <option value="architectural">Architectural</option>
+                        <option value="sketch">Hand Sketch</option>
+                    </select>
+                </label>
+                <label class="options-popup-row">
+                    <span>Color</span>
+                    <select id="opt-color">
+                        <option value="bw">Black &amp; White</option>
+                        <option value="color">Full Color</option>
+                        <option value="muted">Muted</option>
+                    </select>
+                </label>
+                <label class="options-popup-row">
+                    <span>Aspect</span>
+                    <select id="opt-aspect">
+                        <option value="tall">Tall (Portrait)</option>
+                        <option value="wide">Wide (Landscape)</option>
+                        <option value="square">Square</option>
+                    </select>
+                </label>
+                <div class="options-popup-toggles">
+                    <label class="options-toggle"><input type="checkbox" id="opt-shading"
+                            checked><span>Textures</span></label>
+                    <label class="options-toggle"><input type="checkbox" id="opt-trees"
+                            checked><span>Trees</span></label>
+                    <label class="options-toggle"><input type="checkbox" id="opt-labels"><span>Labels</span></label>
+                    <label class="options-toggle"><input type="checkbox" id="opt-north" checked><span>North
+                            ↑</span></label>
+                    <label class="options-toggle"><input type="checkbox" id="opt-setback"><span>Setback</span></label>
+                </div>
+                <label class="options-popup-row">
+                    <span>Notes</span>
+                    <input type="text" id="opt-notes" placeholder="Custom instructions...">
+                </label>
+                <label class="options-popup-row">
+                    <span>Outside buffer (ft)</span>
+                    <input type="number" id="opt-outside-ft" min="0" step="1" value="0" placeholder="0">
+                </label>
+            </div>
+        </div>
+
+        <!-- Save/Load Popup -->
+        <div id="save-load-popup" class="options-popup">
+            <div class="options-popup-header">
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <path d="M17 21v-8H7v8M7 3v5h8" />
+                    </svg>
+                    Save / Load Project
+                </span>
+                <button id="save-load-popup-close" class="options-popup-close" aria-label="Close">✕</button>
+            </div>
+            <div class="options-popup-grid">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="text" id="project-name-input" placeholder="Project name..." style="flex: 1;">
+                    <button id="save-project-btn" class="btn btn-primary"
+                        style="padding: 0.4rem 0.8rem; width: auto;">Save</button>
+                </div>
+                <div id="saved-projects-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 0.5rem;">
+                </div>
+                <div style="display: flex; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+                    <button id="export-project-btn" class="btn btn-secondary"
+                        style="flex: 1; padding: 0.4rem;">Export JSON</button>
+                    <label class="btn btn-secondary"
+                        style="flex: 1; padding: 0.4rem; text-align: center; cursor: pointer;">
+                        Import JSON
+                        <input type="file" id="import-project-input" accept=".json" style="display: none;">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-bar-buttons">
+            <button id="undo-btn" class="action-bar-btn action-bar-secondary" title="Undo (Ctrl+Z)"
+                aria-label="Undo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 14L4 9l5-5" />
+                    <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+                </svg>
+            </button>
+            <button id="redo-btn" class="action-bar-btn action-bar-secondary" title="Redo (Ctrl+Y)"
+                aria-label="Redo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 14l5-5-5-5" />
+                    <path d="M20 9H10a6 6 0 0 0 0 12h3" />
+                </svg>
+            </button>
+            <button id="save-load-btn" class="action-bar-btn action-bar-secondary" title="Save or load this project">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" aria-hidden="true">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                    <path d="M17 21v-8H7v8M7 3v5h8" />
+                </svg>
+                <span class="action-bar-label">Save</span>
+            </button>
+            <button id="options-toggle-btn" class="action-bar-btn action-bar-secondary" title="Export options">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3" />
+                    <path d="M2 14h4M10 8h4M18 16h4" />
+                </svg>
+                <span class="action-bar-label">Options</span>
+            </button>
+            <button id="export-btn" class="action-bar-btn action-bar-primary" title="Generate site plan with AI">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+                    <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" />
+                </svg>
+                <span class="action-bar-label">Generate</span>
+            </button>
+        </div>
     </div>
 
-    <script src="app.js?v=16"></script>
+    <!-- Help & keyboard shortcuts modal (managed by ui.js) -->
+    <div id="shortcuts-modal" class="shortcuts-modal" hidden role="dialog" aria-modal="true"
+        aria-labelledby="shortcuts-title">
+        <div class="shortcuts-card">
+            <h2 id="shortcuts-title">
+                Help &amp; shortcuts
+                <button id="shortcuts-close" class="options-popup-close" aria-label="Close">✕</button>
+            </h2>
+
+            <h3>Keyboard</h3>
+            <div class="shortcuts-list">
+                <div class="shortcut-row"><span>Undo</span><span class="keys"><kbd>Ctrl</kbd><kbd>Z</kbd></span></div>
+                <div class="shortcut-row"><span>Redo</span><span
+                        class="keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Z</kbd></span></div>
+                <div class="shortcut-row"><span>Analyze address</span><span class="keys"><kbd>Enter</kbd></span></div>
+                <div class="shortcut-row"><span>Open this help</span><span class="keys"><kbd>?</kbd></span></div>
+                <div class="shortcut-row"><span>Close popups</span><span class="keys"><kbd>Esc</kbd></span></div>
+            </div>
+
+            <h3>Map tools</h3>
+            <div class="tool-legend">
+                <span class="tool-tag">SNAP</span><span>Snap dragged corners to nearby edges and angles</span>
+                <span class="tool-tag">RECT</span><span>Square the property boundary into a clean rectangle</span>
+                <span class="tool-tag">SHED</span><span>Add and size a shed, align it to the nearest fence</span>
+                <span class="tool-tag">HOUSE</span><span>Select or auto-detect the house footprint</span>
+                <span class="tool-tag">SHDW</span><span>Label shadow areas so AI can remove them</span>
+                <span class="tool-tag">WHITE OUT</span><span>Mask areas of the image before export</span>
+                <span class="tool-tag">SET BACK</span><span>Show a setback line inside the boundary</span>
+                <span class="tool-tag">📏</span><span>Type exact side lengths to fine-tune the boundary</span>
+                <span class="tool-tag">🏷️</span><span>Draw custom labeled lines on the map</span>
+            </div>
+
+            <h3>Mouse &amp; touch</h3>
+            <div class="shortcuts-list">
+                <div class="shortcut-row"><span>Trace boundary</span><span>Drag corners or edge midpoints</span></div>
+                <div class="shortcut-row"><span>Move the map</span><span>Drag empty space (pinch to zoom on
+                        touch)</span></div>
+                <div class="shortcut-row"><span>Rotate structures</span><span>Drag the round handle above a shed or
+                        house</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=17"></script>
+    <script src="ui.js?v=1"></script>
 </body>
 
 </html>
